@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "caretaker.godot_stairs.generation_report/1.1.0",
+  "title": "Godot stair generation report",
+  "type": "object",
+  "$defs": {
+    "vector3": {
+      "type": "array",
+      "items": {"type": "number"},
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "anchorFrame": {
+      "type": "object",
+      "required": ["anchor_id", "type", "role", "status", "source_ref", "origin", "forward", "normal", "up", "geometry_hash", "bounds", "placement_limits"],
+      "properties": {
+        "anchor_id": {"type": "string", "pattern": "^[A-Z0-9._/:\\-]+$"},
+        "type": {"enum": ["point", "wall", "shaft", "floor", "stair_entry", "stair_exit"]},
+        "role": {"enum": ["lower_entry", "upper_exit", "flight_passage", "landing", "clear_volume", "shaft_face"]},
+        "status": {"const": "active"},
+        "source_ref": {"type": "object", "required": ["artifact_id", "source_id"]},
+        "origin": {"$ref": "#/$defs/vector3"},
+        "forward": {"$ref": "#/$defs/vector3"},
+        "normal": {"$ref": "#/$defs/vector3"},
+        "up": {"$ref": "#/$defs/vector3"},
+        "geometry_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "bounds": {"type": "object"},
+        "placement_limits": {
+          "type": "object",
+          "required": ["normal_offset_m", "height_m", "rotation_deg"]
+        }
+      }
+    }
+  },
+  "required": [
+    "schema_id",
+    "schema_version",
+    "contract_version",
+    "generator_version",
+    "status",
+    "settings",
+    "errors",
+    "warnings",
+    "solutions",
+    "files"
+  ],
+  "properties": {
+    "schema_id": {"const": "caretaker.godot_stairs.generation_report"},
+    "schema_version": {"const": "1.1.0"},
+    "contract_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "generator_version": {"type": "string"},
+    "status": {"enum": ["ok", "error"]},
+    "settings": {"type": "object"},
+    "selected_layout": {"type": "object"},
+    "anchor_coordinate_space": {
+      "type": "object",
+      "required": ["units", "horizontal_plane", "up_axis", "space", "origin_mode", "invert_z"]
+    },
+    "anchor_frames": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/anchorFrame"}
+    },
+    "counts": {"type": "object"},
+    "geometry_validation": {"type": "object"},
+    "materials": {"type": "object"},
+    "assumptions": {"type": "array", "items": {"type": "string"}},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "errors": {"type": "array", "items": {"type": "string"}},
+    "solutions": {"type": "array", "items": {"type": "string"}},
+    "layout_failures_before_selection": {"type": "array"},
+    "layout_failures": {"type": "array"},
+    "files": {"type": "array", "items": {"type": "string"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "ok"}}},
+      "then": {"required": ["scene", "resource_dir", "selected_layout", "anchor_coordinate_space", "anchor_frames", "counts", "geometry_validation", "materials", "assumptions", "layout_failures_before_selection"]}
+    }
+  ]
+}
