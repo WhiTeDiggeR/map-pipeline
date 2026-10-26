@@ -1,0 +1,18 @@
+{
+  "schema_id": "caretaker.sector_generation_manifest",
+  "schema_version": "1.0.0",
+  "map_id": "fixture-map",
+  "project_root": "../../..",
+  "sectors": [
+    {
+      "sector_id": "FIXTURE-EDITOR",
+      "status": "ready",
+      "blockers": [],
+      "source_svg": "addons/map_pipeline/godot/regeneration_editor/fixtures/source.svg",
+      "output_resource_dir": "res://addons/map_pipeline/godot/regeneration_editor/fixtures/live",
+      "safe_regeneration": {
+        "composition_input": "addons/map_pipeline/godot/regeneration_editor/fixtures/composition.json"
+      }
+    }
+  ]
+}

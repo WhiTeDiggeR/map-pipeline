@@ -1,0 +1,19 @@
+{
+  "schema_id": "caretaker.safe_regeneration_report",
+  "schema_version": "1.0.0",
+  "sector_id": "FIXTURE-EDITOR",
+  "status": "failed",
+  "ready": false,
+  "stages": [
+    {"stage": "composition_validation", "status": "failed", "detail": "generated data blocked"}
+  ],
+  "errors": [
+    {"stage": "composition_validation", "message": "Composition validator did not report clean"}
+  ],
+  "validation_artifacts": {
+    "repair_queue.json": {
+      "path": "res://addons/map_pipeline/godot/regeneration_editor/fixtures/denied_repair_queue.json",
+      "sha256": "fixture"
+    }
+  }
+}

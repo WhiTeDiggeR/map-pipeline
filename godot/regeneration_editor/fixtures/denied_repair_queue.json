@@ -1,0 +1,21 @@
+{
+  "schema_id": "caretaker.repair_queue",
+  "schema_version": "1.0.0",
+  "contract_version": "1.0.0",
+  "map_id": "fixture-map",
+  "sector_id": "FIXTURE-EDITOR",
+  "generation_id": "fixture-generation",
+  "blocking_count": 1,
+  "items": [
+    {
+      "repair_id": "RQ-GENERATED",
+      "severity": "blocking",
+      "status": "open",
+      "reason": "schema_incompatible",
+      "code": "duplicate_anchor_id",
+      "object_id": "ANCHOR::DUPLICATE",
+      "evidence": {"responsible_owner": "generated"},
+      "allowed_actions": ["regenerate_anchor_frames"]
+    }
+  ]
+}

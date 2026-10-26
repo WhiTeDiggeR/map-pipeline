@@ -1,0 +1,11 @@
+{
+  "schema_id": "caretaker.anchor_frames",
+  "schema_version": "1.0.0",
+  "contract_version": "1.0.0",
+  "map_id": "caretaker-complex-v4-fixture",
+  "sector_id": "FIXTURE",
+  "generation_id": "sha256:missing",
+  "producer": {"name": "fixture", "version": "1.0.0"},
+  "coordinate_space": {"units": "m", "horizontal_plane": "XZ", "up_axis": "+Y", "space": "world"},
+  "anchors": []
+}

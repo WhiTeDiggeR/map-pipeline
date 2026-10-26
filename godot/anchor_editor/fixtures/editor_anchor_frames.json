@@ -1,0 +1,51 @@
+{
+  "schema_id": "caretaker.anchor_frames",
+  "schema_version": "1.0.0",
+  "contract_version": "1.0.0",
+  "map_id": "caretaker-complex-v4-editor-fixture",
+  "sector_id": "EDITOR-FIXTURE",
+  "generation_id": "sha256:editor-fixture",
+  "producer": {"name": "editor-fixture", "version": "1.0.0"},
+  "coordinate_space": {"units": "m", "horizontal_plane": "XZ", "up_axis": "+Y", "space": "world"},
+  "anchors": [
+    {
+      "anchor_id": "AF-EDITOR-WALL-A",
+      "type": "wall",
+      "status": "active",
+      "source_ref": {"artifact_id": "fixture", "source_id": "wall-a"},
+      "origin": [0.0, 0.0, 0.0],
+      "forward": [1.0, 0.0, 0.0],
+      "normal": [0.0, 0.0, 1.0],
+      "up": [0.0, 1.0, 0.0],
+      "geometry_hash": "sha256:wall-a",
+      "bounds": {"kind": "linear_surface", "length_m": 10.0, "height_m": 3.0, "thickness_m": 0.2, "surface_side_id": "fixture/a"},
+      "placement_limits": {"normal_offset_m": [-1.0, 1.0], "height_m": [0.0, 3.0], "rotation_deg": {"yaw": [-180.0, 180.0], "pitch": [-45.0, 45.0], "roll": [-45.0, 45.0]}}
+    },
+    {
+      "anchor_id": "AF-EDITOR-WALL-B",
+      "type": "wall",
+      "status": "active",
+      "source_ref": {"artifact_id": "fixture", "source_id": "wall-b"},
+      "origin": [0.0, 0.0, 0.5],
+      "forward": [1.0, 0.0, 0.0],
+      "normal": [0.0, 0.0, 1.0],
+      "up": [0.0, 1.0, 0.0],
+      "geometry_hash": "sha256:wall-b",
+      "bounds": {"kind": "linear_surface", "length_m": 10.0, "height_m": 3.0, "thickness_m": 0.2, "surface_side_id": "fixture/b"},
+      "placement_limits": {"normal_offset_m": [-1.0, 1.0], "height_m": [0.0, 3.0], "rotation_deg": {"yaw": [-180.0, 180.0], "pitch": [-45.0, 45.0], "roll": [-45.0, 45.0]}}
+    },
+    {
+      "anchor_id": "AF-EDITOR-DOOR-A",
+      "type": "door",
+      "status": "active",
+      "source_ref": {"artifact_id": "fixture", "source_id": "door-a"},
+      "origin": [4.5, 0.0, 0.0],
+      "forward": [1.0, 0.0, 0.0],
+      "normal": [0.0, 0.0, 1.0],
+      "up": [0.0, 1.0, 0.0],
+      "geometry_hash": "sha256:door-a",
+      "bounds": {"kind": "portal", "width_m": 1.0, "height_m": 2.4, "bottom_m": 0.0, "from_space_id": "fixture/a", "to_space_id": "fixture/b"},
+      "placement_limits": {"normal_offset_m": [-0.2, 0.2], "height_m": [0.0, 2.4], "rotation_deg": {"yaw": [-180.0, 180.0], "pitch": [-45.0, 45.0], "roll": [-45.0, 45.0]}}
+    }
+  ]
+}

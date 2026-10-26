@@ -1,0 +1,12 @@
+{
+  "schema_id": "caretaker.safe_regeneration_report",
+  "schema_version": "1.0.0",
+  "sector_id": "FIXTURE-EDITOR",
+  "status": "noop",
+  "ready": true,
+  "stages": [
+    {"stage": "source_validation", "status": "passed", "detail": ""},
+    {"stage": "atomic_promotion", "status": "skipped", "detail": "managed output is unchanged"}
+  ],
+  "errors": []
+}

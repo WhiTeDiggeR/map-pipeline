@@ -1,0 +1,24 @@
+{
+  "schema_id": "caretaker.anchor_frames",
+  "schema_version": "1.0.0",
+  "contract_version": "1.0.0",
+  "map_id": "caretaker-complex-v4-fixture",
+  "sector_id": "FIXTURE",
+  "generation_id": "sha256:duplicate",
+  "producer": {"name": "fixture", "version": "1.0.0"},
+  "coordinate_space": {"units": "m", "horizontal_plane": "XZ", "up_axis": "+Y", "space": "world"},
+  "anchors": [
+    {
+      "anchor_id": "AF-FIXTURE-WALL-MAIN", "type": "wall", "status": "active",
+      "origin": [0, 0, 0], "forward": [1, 0, 0], "normal": [0, 0, 1], "up": [0, 1, 0],
+      "bounds": {"length_m": 10},
+      "placement_limits": {"normal_offset_m": [-1, 1], "height_m": [0, 3], "rotation_deg": {"yaw": [-180, 180], "pitch": [-45, 45], "roll": [-45, 45]}}
+    },
+    {
+      "anchor_id": "AF-FIXTURE-WALL-MAIN", "type": "wall", "status": "active",
+      "origin": [2, 0, 0], "forward": [1, 0, 0], "normal": [0, 0, 1], "up": [0, 1, 0],
+      "bounds": {"length_m": 8},
+      "placement_limits": {"normal_offset_m": [-1, 1], "height_m": [0, 3], "rotation_deg": {"yaw": [-180, 180], "pitch": [-45, 45], "roll": [-45, 45]}}
+    }
+  ]
+}

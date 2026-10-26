@@ -1,0 +1,12 @@
+{
+  "schema_id": "caretaker.composition_validation_input",
+  "schema_version": "1.0.0",
+  "map_id": "fixture-map",
+  "sector_id": "FIXTURE-EDITOR",
+  "generation_id": "fixture-editor",
+  "sector_bounds": {"min": [0, -1, 0], "max": [10, 4, 10]},
+  "spaces": [],
+  "anchors": [],
+  "infrastructure": [],
+  "objects": []
+}

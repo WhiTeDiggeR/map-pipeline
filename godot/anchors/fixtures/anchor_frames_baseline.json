@@ -1,0 +1,29 @@
+{
+  "schema_id": "caretaker.anchor_frames",
+  "schema_version": "1.0.0",
+  "contract_version": "1.0.0",
+  "map_id": "caretaker-complex-v4-fixture",
+  "sector_id": "FIXTURE",
+  "generation_id": "sha256:baseline",
+  "producer": {"name": "fixture", "version": "1.0.0"},
+  "coordinate_space": {"units": "m", "horizontal_plane": "XZ", "up_axis": "+Y", "space": "world"},
+  "anchors": [
+    {
+      "anchor_id": "AF-FIXTURE-WALL-MAIN",
+      "type": "wall",
+      "status": "active",
+      "source_ref": {"artifact_id": "fixture", "source_id": "wall-main"},
+      "origin": [0.0, 0.0, 0.0],
+      "forward": [1.0, 0.0, 0.0],
+      "normal": [0.0, 0.0, 1.0],
+      "up": [0.0, 1.0, 0.0],
+      "geometry_hash": "sha256:baseline-wall",
+      "bounds": {"kind": "linear_surface", "length_m": 10.0, "height_m": 3.0, "thickness_m": 0.2},
+      "placement_limits": {
+        "normal_offset_m": [-0.5, 0.5],
+        "height_m": [0.0, 3.0],
+        "rotation_deg": {"yaw": [-180.0, 180.0], "pitch": [-45.0, 45.0], "roll": [-45.0, 45.0]}
+      }
+    }
+  ]
+}

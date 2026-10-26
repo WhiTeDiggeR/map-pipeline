@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" data-scale="1m-per-unit">
+  <line id="wall-fixture" class="wall" x1="0" y1="0" x2="10" y2="0" />
+</svg>

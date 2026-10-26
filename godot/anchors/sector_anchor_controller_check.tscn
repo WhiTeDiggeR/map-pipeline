@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/map_pipeline/godot/anchors/sector_anchor_controller_check.gd" id="1_check"]
+
+[node name="SectorAnchorControllerCheck" type="Node"]
+script = ExtResource("1_check")

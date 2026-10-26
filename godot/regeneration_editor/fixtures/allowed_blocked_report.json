@@ -1,0 +1,19 @@
+{
+  "schema_id": "caretaker.safe_regeneration_report",
+  "schema_version": "1.0.0",
+  "sector_id": "FIXTURE",
+  "status": "failed",
+  "ready": false,
+  "stages": [
+    {"stage": "composition_validation", "status": "failed", "detail": "authored binding blocked"}
+  ],
+  "errors": [
+    {"stage": "composition_validation", "message": "Composition validator did not report clean"}
+  ],
+  "validation_artifacts": {
+    "repair_queue.json": {
+      "path": "res://addons/map_pipeline/pipeline/composition_validator/reports/blocked_missing_anchor/repair_queue.json",
+      "sha256": "fixture"
+    }
+  }
+}

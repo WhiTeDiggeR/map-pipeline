@@ -1,0 +1,14 @@
+{
+  "schema_id": "caretaker.safe_regeneration_report",
+  "schema_version": "1.0.0",
+  "sector_id": "FIXTURE-EDITOR",
+  "status": "failed",
+  "ready": false,
+  "stages": [
+    {"stage": "source_validation", "status": "failed", "detail": "invalid SVG"}
+  ],
+  "errors": [
+    {"stage": "source_validation", "message": "SVG inspection failed"}
+  ],
+  "validation_artifacts": {}
+}

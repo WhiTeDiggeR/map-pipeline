@@ -17,3 +17,17 @@ jobs:
           python -m unittest discover -s pipeline/composition_validator/tests
           python -m unittest discover -s pipeline/repair_package/tests
           python -m unittest discover -s generators/generate-godot-stairs/tests
+  godot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Godot 4.7
+        run: |
+          curl -sSL -o godot.zip https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip
+          unzip -q godot.zip -d "$RUNNER_TEMP/godot"
+          echo "GODOT_BIN=$RUNNER_TEMP/godot/Godot_v4.7-stable_linux.x86_64" >> "$GITHUB_ENV"
+      - name: Plugins and anchor runtime in a throwaway project
+        run: python tests/godot_checks.py

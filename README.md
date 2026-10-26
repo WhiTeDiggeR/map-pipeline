@@ -1,14 +1,17 @@
 # map-pipeline
 
 Tools for turning annotated SVG floor plans into Godot 4 scenes, independent of any one game project.
-A project uses it as a git submodule at `addons/map_pipeline` (Godot finds the editor plugins there; `generators/`, `pipeline/`
-and `docs/` carry `.gdignore`, so Godot does not import them).
+A project uses it as a git submodule at `addons/map_pipeline` (Godot finds the editor plugins there; `generators/`, `pipeline/`,
+`docs/` and `tests/` carry `.gdignore`, so Godot does not import them).
 
 | Path | What it is |
 |---|---|
 | `generators/svg-plan-to-godot` | svg_to_godot3d 1.19.0 — inspects and converts annotated SVG/HTML plans into Godot 4 blockout scenes (walls, floors, ceilings, openings, collisions, anchor frames) |
 | `generators/generate-godot-stairs` | generate_godot_stairs 2.9.0 — straight, L-turn, U-turn and perimeter stair scenes from shaft size and floor height |
 | `pipeline/` | regeneration of one map sector from a project manifest: `regenerate_sector.py` (backend), `safe_regenerate.py` (staging, validation, atomic promotion), `manifest_contract.py`, `vertical_resolver.py` (stairs from `data-vertical-*` markup), `vertical_closures.py` (shaft lining and exit thresholds), `room_finishes.py` (materials by room class), `resolve_bindings.py`, `composition_validator/`, `repair_package/` |
+| `godot/anchors/` | anchor runtime: `AnchoredObject3D`, `MapAnchorRegistry`, `MapAnchorPlacement`, `MapAnchorAxisPlacement`, `MapSectorAnchorController`, `MapDoorBindingBuilder` — authored objects bound to stable anchor IDs of generated packages |
+| `godot/regeneration_editor/` | editor plugin «Map Pipeline Regeneration»: per-sector regenerate, validate, report, door bindings; manifest from the project setting `map_pipeline/sector_manifest`, generators from `generators/` unless EditorSettings or `MAP_PIPELINE_*` variables override them |
+| `godot/anchor_editor/` | editor plugin «Map Pipeline Anchors»: bind, rebind, unbind objects and keep authored corrections |
 | `docs/vertical-markup.md` | markup contract for stairs and shafts in the plans |
 
 ## Project manifest
@@ -28,4 +31,11 @@ python -m unittest discover -s pipeline/repair_package/tests
 python -m unittest discover -s generators/generate-godot-stairs/tests
 ```
 
-Godot editor plugins and the anchor runtime follow (caretaker issue WhiTeDiggeR/caretaker#244).
+Godot checks (plugins, anchor runtime) run in a throwaway project that mounts this checkout at `res://addons/map_pipeline`:
+
+```
+GODOT_BIN=<Godot 4.7> python tests/godot_checks.py
+```
+
+Enable the plugins in a project with `res://addons/map_pipeline/godot/regeneration_editor/plugin.cfg` and
+`res://addons/map_pipeline/godot/anchor_editor/plugin.cfg` (Godot finds plugins nested under `addons/`).
