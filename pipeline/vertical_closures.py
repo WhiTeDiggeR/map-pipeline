@@ -119,9 +119,13 @@ def threshold_box(rect: Sequence[float], exit_side: str, exit_point: Sequence[fl
     # top flush with the floor, bottom a little above the floor underside so the two bottom faces are not coplanar
     thickness = FLOOR_THICKNESS_M - Z_FIGHT_OFFSET_M
     y = elevation - thickness / 2
+    # across the opening stop at the inner faces of the side linings (inset by Z_FIGHT_OFFSET_M), not inside them
+    e = Z_FIGHT_OFFSET_M
     if across == "x":
-        return Box(name, "threshold", ((x0 + x1) / 2, y, (lo + hi) / 2), (x1 - x0, thickness, depth))
-    return Box(name, "threshold", ((lo + hi) / 2, y, (z0 + z1) / 2), (depth, thickness, z1 - z0))
+        a0, a1 = rect[0] + e, rect[2] - e
+        return Box(name, "threshold", ((a0 + a1) / 2, y, (lo + hi) / 2), (a1 - a0, thickness, depth))
+    a0, a1 = rect[1] + e, rect[3] - e
+    return Box(name, "threshold", ((lo + hi) / 2, y, (a0 + a1) / 2), (depth, thickness, a1 - a0))
 
 
 def _world(local_to_world: dict[str, Any], point: Sequence[float]) -> tuple[float, float, float]:
