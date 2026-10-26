@@ -1,0 +1,7 @@
+{
+  "schema_id":"caretaker.composition_validation_input","schema_version":"1.0.0","map_id":"fixture-map","sector_id":"FIXTURE","generation_id":"sha256:missing","sector_bounds":{"min":[0,-1,0],"max":[10,4,10]},
+  "spaces":[{"space_id":"SPACE-A","sector_id":"FIXTURE","bounds":{"min":[0,0,0],"max":[10,3,10]}}],"anchors":[],
+  "infrastructure":[{"infrastructure_id":"INFRA-FLOOR","owner":"generated","kind":"floor","bounds":{"min":[0,-0.2,0],"max":[10,0,10]}}],
+  "objects":[{"object_id":"OBJ-MISSING","binding_id":"BIND-MISSING","owner":"authored","sector_id":"FIXTURE","space_id":"SPACE-A","anchor_id":"AF-REMOVED","expected_anchor_type":"wall","placement_mode":"floor","bounds":{"min":[1,0,1],"max":[2,1,2]}}],
+  "declared_warnings":[{"code":"review_material","object_id":"OBJ-MISSING","message":"Non-blocking review remains visible beside the blocker."}]
+}

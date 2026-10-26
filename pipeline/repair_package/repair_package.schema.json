@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/WhiTeDiggeR/map-pipeline/schemas/agent-repair-package-1.0.0.json",
+  "title": "Map pipeline agent repair package",
+  "type": "object",
+  "required": ["schema_id", "schema_version", "map_id", "sector_id", "generation_id", "package_id", "object_ids", "repair_ids", "allowed_actions", "file_policy", "validation_command", "agent_invoked", "context_files", "input_hashes"],
+  "properties": {
+    "schema_id": {"const": "caretaker.agent_repair_package"},
+    "schema_version": {"const": "1.0.0"},
+    "agent_invoked": {"const": false},
+    "object_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "repair_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "allowed_actions": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "validation_command": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "file_policy": {"type": "object", "required": ["writable", "read_only", "forbidden"]}
+  },
+  "additionalProperties": true
+}

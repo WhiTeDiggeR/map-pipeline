@@ -1,0 +1,11 @@
+{
+  "schema_id":"caretaker.composition_validation_input","schema_version":"1.0.0","map_id":"fixture-map","sector_id":"PHYSICS","generation_id":"sha256:physics",
+  "sector_bounds":{"min":[-10,-1,-10],"max":[10,4,10]},
+  "spaces":[{"space_id":"PHYSICS-SPACE","sector_id":"PHYSICS","bounds":{"min":[-10,0,-10],"max":[10,3,10]}}],
+  "anchors":[],"infrastructure":[],
+  "objects":[
+    {"object_id":"OBJ-PHYS-WALL","owner":"authored","sector_id":"PHYSICS","space_id":"PHYSICS-SPACE","placement_mode":"free","bounds":{"min":[-0.5,0,-0.5],"max":[0.5,1,0.5]}},
+    {"object_id":"OBJ-PHYS-FLOAT","owner":"authored","sector_id":"PHYSICS","space_id":"PHYSICS-SPACE","placement_mode":"free","bounds":{"min":[2.5,1, -0.5],"max":[3.5,2,0.5]}},
+    {"object_id":"OBJ-PHYS-SUPPORTED","owner":"authored","sector_id":"PHYSICS","space_id":"PHYSICS-SPACE","placement_mode":"free","bounds":{"min":[-3.5,0,-0.5],"max":[-2.5,1,0.5]}}
+  ]
+}

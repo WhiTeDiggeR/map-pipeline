@@ -1,0 +1,5 @@
+{
+  "schema_id":"caretaker.composition_validation_input","schema_version":"1.0.0","map_id":"fixture-map","sector_id":"FIXTURE","generation_id":"sha256:outside","sector_bounds":{"min":[0,-1,0],"max":[10,4,10]},
+  "spaces":[{"space_id":"SPACE-A","sector_id":"FIXTURE","bounds":{"min":[0,0,0],"max":[5,3,5]}}],"anchors":[],"infrastructure":[],
+  "objects":[{"object_id":"OBJ-OUTSIDE","owner":"authored","sector_id":"WRONG-SECTOR","space_id":"SPACE-A","placement_mode":"free","bounds":{"min":[9,0,9],"max":[11,1,11]}}]
+}

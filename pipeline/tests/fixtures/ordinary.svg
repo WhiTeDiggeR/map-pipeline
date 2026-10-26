@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <rect id="floor-main" class="floor" x="1" y="1" width="18" height="18" />
+  <rect id="ceiling-main" class="ceiling" x="1" y="1" width="18" height="18" data-ceiling-elevation="3" />
+  <line id="wall-main" class="wall" x1="2" y1="10" x2="18" y2="10"
+        data-surface-side-id="wall-main/face" data-normal-side="normal" />
+  <line id="door-main" class="door" x1="8" y1="10" x2="10" y2="10"
+        data-inside-side="normal" data-hinge-side="start" />
+  <circle id="reference-main" class="marker" cx="4" cy="6" r="0.2" data-anchor-role="reference" />
+</svg>

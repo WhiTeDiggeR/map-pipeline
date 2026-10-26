@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 14">
+  <rect id="floor-vertical" class="floor" x="0" y="0" width="12" height="14" />
+  <rect id="ceiling-vertical" class="ceiling" x="0" y="0" width="12" height="14" data-ceiling-elevation="3.4" />
+  <rect id="shaft-opening" data-godot-type="floor-opening" data-space-id="shaft-fixture"
+        x="3" y="3" width="6" height="7" />
+  <circle id="shaft-reference" class="marker" cx="6" cy="10" r="0.2" data-anchor-role="shaft_reference" />
+</svg>

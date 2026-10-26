@@ -1,0 +1,11 @@
+{
+  "schema_id": "caretaker.anchor_frames",
+  "schema_version": "1.0.0",
+  "map_id": "fixture-map",
+  "sector_id": "FIXTURE-SECTOR",
+  "generation_id": "sha256:fixture-generation",
+  "anchors": [
+    {"anchor_id": "AF-WALL-A-CANDIDATE", "type": "wall", "status": "active", "origin": [1, 1, 0], "forward": [1, 0, 0], "normal": [0, 0, 1], "up": [0, 1, 0], "bounds": {"length_m": 3}, "placement_limits": {}},
+    {"anchor_id": "AF-WALL-B", "type": "wall", "status": "active", "origin": [3, 1, 0], "forward": [1, 0, 0], "normal": [0, 0, 1], "up": [0, 1, 0], "bounds": {"length_m": 2}, "placement_limits": {}}
+  ]
+}

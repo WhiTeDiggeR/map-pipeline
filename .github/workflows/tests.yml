@@ -1,0 +1,19 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pipeline, composition validator, repair package and stair generator tests
+        env:
+          SVG_TOOL_ROOT: ${{ github.workspace }}/generators/svg-plan-to-godot
+          STAIR_TOOL_ROOT: ${{ github.workspace }}/generators/generate-godot-stairs
+        run: |
+          python -m unittest discover -s pipeline/tests
+          python -m unittest discover -s pipeline/composition_validator/tests
+          python -m unittest discover -s pipeline/repair_package/tests
+          python -m unittest discover -s generators/generate-godot-stairs/tests

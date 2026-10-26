@@ -1,0 +1,8 @@
+{
+  "schema_id":"caretaker.composition_validation_input","schema_version":"1.0.0","map_id":"fixture-map","sector_id":"FIXTURE","generation_id":"sha256:duplicate-anchor","sector_bounds":{"min":[0,-1,0],"max":[10,4,10]},
+  "spaces":[],"infrastructure":[],"objects":[],
+  "anchors":[
+    {"anchor_id":"AF-DUP","type":"wall","status":"active","bounds":{"length_m":2,"height_m":3}},
+    {"anchor_id":"AF-DUP","type":"wall","status":"active","bounds":{"length_m":3,"height_m":3}}
+  ]
+}

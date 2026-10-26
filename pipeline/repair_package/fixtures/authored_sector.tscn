@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[node name="FixtureSector" type="Node3D"]
+[node name="AuthoredContent" type="Node3D" parent="."]
+[node name="ObjectA" type="Node3D" parent="AuthoredContent"]
+[node name="ObjectB" type="Node3D" parent="AuthoredContent"]

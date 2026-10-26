@@ -1,0 +1,8 @@
+{
+  "schema_id":"caretaker.composition_validation_input","schema_version":"1.0.0","map_id":"fixture-map","sector_id":"FIXTURE","generation_id":"sha256:infra","sector_bounds":{"min":[0,-1,0],"max":[10,4,10]},
+  "spaces":[],"anchors":[],"objects":[],
+  "infrastructure":[
+    {"infrastructure_id":"INFRA-BAD-WALL","owner":"generated","kind":"wall","bounds":{"min":[4,0,4],"max":[6,3,4.3]}},
+    {"infrastructure_id":"CLEAR-DOOR","owner":"generated","kind":"door_clearance","bounds":{"min":[4.5,0,3.5],"max":[5.5,2.4,4.5]}}
+  ]
+}

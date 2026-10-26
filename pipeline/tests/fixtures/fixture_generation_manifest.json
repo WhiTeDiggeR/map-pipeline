@@ -1,0 +1,63 @@
+{
+  "schema_id": "caretaker.sector_generation_manifest",
+  "schema_version": "1.0.0",
+  "contract_version": "1.0.0",
+  "map_id": "caretaker-complex-v4-fixtures",
+  "project_root": "../../../..",
+  "sectors": [
+    {
+      "sector_id": "FIXTURE-ORDINARY",
+      "status": "ready",
+      "blockers": [],
+      "source_svg": "tools/complex_v4/tests/fixtures/ordinary.svg",
+      "profile": "generic",
+      "metric_settings": {"scale_m_per_svg_unit": 1.0, "origin": "none", "elevation_m": 0.0},
+      "shared_args": [],
+      "semantic_mappings": [],
+      "material_mappings": {},
+      "scene_name": "fixture_ordinary",
+      "output_resource_dir": "res://generated/complex_v4_fixtures/ordinary",
+      "local_to_world": {
+        "origin": [10.0, 0.0, 20.0],
+        "basis_x": [1.0, 0.0, 0.0],
+        "basis_y": [0.0, 1.0, 0.0],
+        "basis_z": [0.0, 0.0, 1.0]
+      },
+      "vertical_generators": []
+    },
+    {
+      "sector_id": "FIXTURE-VERTICAL",
+      "status": "ready",
+      "blockers": [],
+      "source_svg": "tools/complex_v4/tests/fixtures/vertical.svg",
+      "profile": "generic",
+      "metric_settings": {"scale_m_per_svg_unit": 1.0, "origin": "none", "elevation_m": -2.6},
+      "shared_args": [],
+      "semantic_mappings": [],
+      "material_mappings": {},
+      "scene_name": "fixture_vertical",
+      "output_resource_dir": "res://generated/complex_v4_fixtures/vertical",
+      "local_to_world": {
+        "origin": [30.0, -2.6, 40.0],
+        "basis_x": [1.0, 0.0, 0.0],
+        "basis_y": [0.0, 1.0, 0.0],
+        "basis_z": [0.0, 0.0, 1.0]
+      },
+      "vertical_generators": [
+        {
+          "generator_id": "shaft-fixture",
+          "args": [
+            "--shaft-width", "6", "--shaft-length", "7", "--floor-height", "3.4",
+            "--layout", "u-turn", "--scene-name", "fixture_stairs", "--railings", "both"
+          ],
+          "local_to_world": {
+            "origin": [36.0, -2.6, 47.0],
+            "basis_x": [1.0, 0.0, 0.0],
+            "basis_y": [0.0, 1.0, 0.0],
+            "basis_z": [0.0, 0.0, 1.0]
+          }
+        }
+      ]
+    }
+  ]
+}

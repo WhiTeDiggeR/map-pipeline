@@ -1,0 +1,13 @@
+{
+  "schema_id": "caretaker.repair_queue",
+  "schema_version": "1.0.0",
+  "contract_version": "1.0.0",
+  "map_id": "fixture-map",
+  "sector_id": "FIXTURE-SECTOR",
+  "generation_id": "sha256:fixture-generation",
+  "blocking_count": 2,
+  "items": [
+    {"repair_id": "RQ-A", "severity": "blocking", "status": "open", "reason": "anchor_missing", "object_id": "OBJ-A", "binding_id": "BIND-A", "previous_anchor_ref": {"anchor_id": "AF-REMOVED", "expected_type": "wall"}, "evidence": {"measurement": {"actual": "missing", "limit": "active", "units": "state"}}, "candidate_anchor_ids": ["AF-WALL-A-CANDIDATE"], "allowed_actions": ["restore_anchor", "rebind_explicit", "remove_binding"], "resolution": null},
+    {"repair_id": "RQ-B", "severity": "blocking", "status": "open", "reason": "out_of_bounds", "object_id": "OBJ-B", "binding_id": "BIND-B", "previous_anchor_ref": {"anchor_id": "AF-WALL-B", "expected_type": "wall"}, "evidence": {"measurement": {"actual": 2.4, "limit": 2.0, "units": "m"}}, "candidate_anchor_ids": [], "allowed_actions": ["adjust_placement", "rebind_explicit"], "resolution": null}
+  ]
+}

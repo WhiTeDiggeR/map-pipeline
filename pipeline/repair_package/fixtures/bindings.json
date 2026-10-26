@@ -1,0 +1,20 @@
+{
+  "schema_id": "caretaker.object_bindings",
+  "schema_version": "1.0.0",
+  "map_id": "fixture-map",
+  "sector_id": "FIXTURE-SECTOR",
+  "bindings": [
+    {
+      "binding_id": "BIND-A",
+      "object_ref": {"object_id": "OBJ-A", "scene": "res://pipeline/repair_package/fixtures/authored_sector.tscn", "node_path_hint": "AuthoredContent/ObjectA"},
+      "anchor_ref": {"anchor_id": "AF-REMOVED", "expected_type": "wall"},
+      "on_missing_anchor": "block"
+    },
+    {
+      "binding_id": "BIND-B",
+      "object_ref": {"object_id": "OBJ-B", "scene": "res://pipeline/repair_package/fixtures/authored_sector.tscn", "node_path_hint": "AuthoredContent/ObjectB"},
+      "anchor_ref": {"anchor_id": "AF-WALL-B", "expected_type": "wall"},
+      "on_missing_anchor": "block"
+    }
+  ]
+}

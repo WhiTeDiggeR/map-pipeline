@@ -1,0 +1,16 @@
+{
+  "schema_id":"caretaker.composition_validation_input","schema_version":"1.0.0","map_id":"fixture-map","sector_id":"FIXTURE","generation_id":"sha256:surfaces","sector_bounds":{"min":[0,-1,0],"max":[12,5,12]},
+  "spaces":[{"space_id":"SPACE-A","sector_id":"FIXTURE","bounds":{"min":[0,-0.5,0],"max":[12,4,12]}}],"anchors":[],
+  "infrastructure":[
+    {"infrastructure_id":"INFRA-FLOOR","owner":"generated","kind":"floor","bounds":{"min":[0,-0.2,0],"max":[12,0,12]}},
+    {"infrastructure_id":"INFRA-CEILING","owner":"generated","kind":"ceiling","bounds":{"min":[0,2.8,0],"max":[12,3,12]}},
+    {"infrastructure_id":"CLEAR-PASSAGE","owner":"generated","kind":"required_passage","bounds":{"min":[4,0,4],"max":[6,2.4,6]}},
+    {"infrastructure_id":"INFRA-SHAFT","owner":"generated","kind":"shaft","bounds":{"min":[8,0,8],"max":[10,4,10]}}
+  ],
+  "objects":[
+    {"object_id":"OBJ-FLOOR-PEN","owner":"authored","sector_id":"FIXTURE","space_id":"SPACE-A","placement_mode":"free","bounds":{"min":[1,-0.1,1],"max":[2,1,2]}},
+    {"object_id":"OBJ-CEILING-PEN","owner":"authored","sector_id":"FIXTURE","space_id":"SPACE-A","placement_mode":"free","bounds":{"min":[2,2.7,2],"max":[3,3.1,3]}},
+    {"object_id":"OBJ-PASSAGE","owner":"authored","sector_id":"FIXTURE","space_id":"SPACE-A","placement_mode":"free","bounds":{"min":[4.5,0,4.5],"max":[5.5,1,5.5]}},
+    {"object_id":"OBJ-SHAFT","owner":"authored","sector_id":"FIXTURE","space_id":"SPACE-A","placement_mode":"free","bounds":{"min":[8.5,0,8.5],"max":[9.5,1,9.5]}}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "schema_id":"caretaker.composition_validation_input","schema_version":"1.0.0","map_id":"fixture-map","sector_id":"FIXTURE","generation_id":"sha256:door","sector_bounds":{"min":[0,-1,0],"max":[10,4,10]},
+  "spaces":[{"space_id":"SPACE-A","sector_id":"FIXTURE","bounds":{"min":[0,0,0],"max":[10,3,10]}}],"anchors":[],
+  "infrastructure":[
+    {"infrastructure_id":"INFRA-FLOOR","owner":"generated","kind":"floor","bounds":{"min":[0,-0.2,0],"max":[10,0,10]}},
+    {"infrastructure_id":"CLEAR-DOOR","owner":"generated","kind":"door_clearance","bounds":{"min":[4,0,4],"max":[6,2.4,6]}}
+  ],
+  "objects":[{"object_id":"OBJ-DOOR-BLOCK","owner":"authored","sector_id":"FIXTURE","space_id":"SPACE-A","placement_mode":"floor","bounds":{"min":[4.5,0,4.5],"max":[5.5,1,5.5]}}]
+}

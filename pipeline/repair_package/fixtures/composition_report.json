@@ -1,0 +1,12 @@
+{
+  "schema_id": "caretaker.composition_validation_report",
+  "schema_version": "1.0.0",
+  "map_id": "fixture-map",
+  "sector_id": "FIXTURE-SECTOR",
+  "generation_id": "sha256:fixture-generation",
+  "status": "blocked",
+  "issues": [
+    {"issue_id": "CV-MISSING-A", "severity": "blocking", "status": "open", "code": "missing_anchor", "object_id": "OBJ-A", "binding_id": "BIND-A", "anchor_id": "AF-REMOVED", "measurement": {"actual": "missing", "limit": "active", "units": "state"}, "allowed_actions": ["restore_anchor", "rebind_explicit", "remove_binding"]},
+    {"issue_id": "CV-BOUNDS-B", "severity": "blocking", "status": "open", "code": "out_of_bounds", "object_id": "OBJ-B", "binding_id": "BIND-B", "anchor_id": "AF-WALL-B", "measurement": {"actual": 2.4, "limit": 2.0, "units": "m"}, "allowed_actions": ["adjust_placement", "rebind_explicit"]}
+  ]
+}
