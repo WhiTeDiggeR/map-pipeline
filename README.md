@@ -16,7 +16,8 @@ A project uses it as a git submodule at `addons/map_pipeline` (Godot finds the e
 
 ## Project manifest
 
-`safe_regenerate.py --manifest <project manifest> --sector <ID> --report <file>` regenerates one sector. Everything project-specific
+`safe_regenerate.py --manifest <project manifest> --sector <ID> --report <file>` regenerates one sector. Generators default to the bundled `generators/`
+(`SVG_TOOL_ROOT`/`STAIR_TOOL_ROOT` or `--svg-tool-root`/`--stair-tool-root` override them). Everything project-specific
 is in the manifest: sectors (source SVG, metric settings, output `res://` directory, stair generators), `map_id`, optional
 `finish_registry` (project-relative path of the room finish registry) and optional `production_rules`
 (`sector_count`, `source_contains`, `output_prefix`). Schema identifiers keep their original `caretaker.*` names for

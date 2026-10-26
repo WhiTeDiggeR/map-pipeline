@@ -35,6 +35,9 @@ EPS = 1.0e-6
 ANCHOR_TYPES = {"point", "wall", "door", "floor", "ceiling", "shaft", "stair_entry", "stair_exit"}
 MIN_SVG_VERSION = (1, 19, 0)
 MIN_STAIR_VERSION = (2, 9, 0)
+GENERATORS_DIR = Path(__file__).resolve().parents[1] / "generators"
+DEFAULT_SVG_TOOL_ROOT = GENERATORS_DIR / "svg-plan-to-godot"
+DEFAULT_STAIR_TOOL_ROOT = GENERATORS_DIR / "generate-godot-stairs"
 
 
 class RegenerationError(Exception):
@@ -47,8 +50,16 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--staging")
     result.add_argument("--preflight-only", action="store_true")
     result.add_argument("--manifest", required=True, help="sector generation manifest of the project")
-    result.add_argument("--svg-tool-root", required=True, help="Canonical svg-plan-to-godot package/source root")
-    result.add_argument("--stair-tool-root", help="Canonical generate-godot-stairs root when vertical generators are configured")
+    result.add_argument(
+        "--svg-tool-root",
+        default=os.environ.get("SVG_TOOL_ROOT") or str(DEFAULT_SVG_TOOL_ROOT),
+        help="svg-plan-to-godot root (default: $SVG_TOOL_ROOT, else the bundled generators/svg-plan-to-godot)",
+    )
+    result.add_argument(
+        "--stair-tool-root",
+        default=os.environ.get("STAIR_TOOL_ROOT") or str(DEFAULT_STAIR_TOOL_ROOT),
+        help="generate-godot-stairs root (default: $STAIR_TOOL_ROOT, else the bundled generators/generate-godot-stairs)",
+    )
     result.add_argument("--python", default=sys.executable)
     return result
 
