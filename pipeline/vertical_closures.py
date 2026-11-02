@@ -4,7 +4,11 @@ Every floor opening of a sector (a stair or lift shaft marked with data-vertical
 the lower room's walls stop at its wall height, the upper floor starts one slab higher, and nothing covers the shaft sides in
 between. This module derives, from the canonical SVG plans only, boxes that the regenerator adds to the sector architecture:
 
-* lining   - four walls around every floor opening, outside the opening, from the top of the lower walls to the upper floor;
+* lining   - four thin plates around every floor opening, from the top of the lower walls up to the upper floor. Their inner faces
+             lie exactly on the edges of the opening rectangle, which the plans draw on the inner faces of the shaft walls, so the
+             walls below, the lining and the walls above make one flat shaft side (caretaker #272). The slabs of both levels are cut
+             SLAB_RECESS_M wider than the rectangle (data-floor-edge-offset / data-ceiling-edge-offset on the openings), so their
+             cut edges stand behind the plates instead of in their plane (coplanar faces flicker) and no slab sticks into the shaft;
 * threshold - for a stair hosted by the sector, the strip of upper floor between the last tread and the edge of the opening on
               the exit side (the generator ends the flight one tread short of the shaft wall, the floor opening is cut to it).
 
@@ -19,13 +23,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
 
-LINING_THICKNESS_M = 0.093  # odd on purpose: the outer face must not land on a plan grid line shared by slab pieces
-# The lining stands this much inside the opening and starts / ends this much inside the slabs, so none of its faces is coplanar
-# with a floor, ceiling or slab edge face (coplanar faces flicker).
+# The plans cut both slabs of a shaft this much wider than the opening rectangle (data-floor-edge-offset on the floor opening,
+# data-ceiling-edge-offset on the ceiling opening); the lining plates fill that recess.
+SLAB_RECESS_M = 0.008
+LINING_THICKNESS_M = 0.006  # thinner than the recess: the plates never touch the slab edges behind them
+# The threshold bottom stays this much above the floor underside, so the two bottom faces are not coplanar (coplanar faces flicker).
 Z_FIGHT_OFFSET_M = 0.02  # well above the 5 mm coplanar tolerance of surface_conflict_check.gd
 FLOOR_THICKNESS_M = 0.2
 MIN_SIZE_M = 0.005
-EDGE_GAP_M = 0.002
+EDGE_GAP_M = 0.001  # between the threshold end and the recessed slab edge: touching faces would only be an edge, not a seam
 
 
 @dataclass(frozen=True)
@@ -76,56 +82,55 @@ def lower_sector(manifest: dict[str, Any], project_root: Path, opening: dict[str
 
 def lining_boxes(rect: Sequence[float], bottom: float, top: float, prefix: str, low_sides: frozenset[str] = frozenset(),
                  low_top: float | None = None) -> list[Box]:
-    """Four walls around the opening. Sides in low_sides (the exit side of a stair) stop at low_top, under the top tread and the
-    exit threshold, which close that side above it."""
+    """Four plates around the opening, inner faces on its edges, from the top of the lower walls (bottom) to the upper floor (top),
+    so they meet the walls of both levels edge to edge. Sides in low_sides (the exit side of a stair) stop at low_top, under the exit
+    threshold, which closes that side above it."""
     x0, z0, x1, z1 = rect
-    e, t = Z_FIGHT_OFFSET_M, LINING_THICKNESS_M
-    xa, xb = x0 + e - t, x1 - e + t          # north / south walls run over the corners
+    t = LINING_THICKNESS_M
+    xa, xb = x0 - t, x1 + t          # north / south plates run over the corners
     sides = {
-        "N": (((xa + xb) / 2, z0 + e - t / 2), (xb - xa, t)),
-        "S": (((xa + xb) / 2, z1 - e + t / 2), (xb - xa, t)),
-        "W": ((x0 + e - t / 2, (z0 + z1) / 2), (t, z1 - z0 - 2 * e)),
-        "E": ((x1 - e + t / 2, (z0 + z1) / 2), (t, z1 - z0 - 2 * e)),
+        "N": (((xa + xb) / 2, z0 - t / 2), (xb - xa, t)),
+        "S": (((xa + xb) / 2, z1 + t / 2), (xb - xa, t)),
+        "W": ((x0 - t / 2, (z0 + z1) / 2), (t, z1 - z0)),
+        "E": ((x1 + t / 2, (z0 + z1) / 2), (t, z1 - z0)),
     }
     boxes = []
     for side, ((cx, cz), (sx, sz)) in sides.items():
-        side_top = (low_top if side in low_sides and low_top is not None else top) - e
-        side_bottom = bottom + e
-        height = side_top - side_bottom
+        side_top = low_top if side in low_sides and low_top is not None else top
+        height = side_top - bottom
         if height <= MIN_SIZE_M:
             continue
-        boxes.append(Box(f"{prefix}_{side}", "lining", (cx, (side_bottom + side_top) / 2, cz), (sx, height, sz)))
+        boxes.append(Box(f"{prefix}_{side}", "lining", (cx, (bottom + side_top) / 2, cz), (sx, height, sz)))
     return boxes
 
 
+def threshold_bottom(elevation: float) -> float:
+    """Underside of the exit threshold: a little above the floor underside, so the two bottom faces are not coplanar."""
+    return elevation - FLOOR_THICKNESS_M + Z_FIGHT_OFFSET_M
+
+
 def threshold_box(rect: Sequence[float], exit_side: str, exit_point: Sequence[float], elevation: float, name: str) -> Box | None:
-    """Upper-floor strip between the end of the exit flight and the edge of the opening on the exit side."""
-    # the converter cuts the floor opening a fraction of a millimetre short; stop just inside the edge so the threshold top does
-    # not overlap the floor top (coplanar overlap flickers)
-    g = EDGE_GAP_M
-    x0, z0, x1, z1 = rect[0] + g, rect[1] + g, rect[2] - g, rect[3] - g
+    """Upper-floor strip between the end of the exit flight and the recessed slab edge on the exit side, across the opening between
+    the inner faces of the side plates. Its top is flush with the floor."""
+    x0, z0, x1, z1 = rect
+    reach = SLAB_RECESS_M - EDGE_GAP_M  # past the edge, over the exit plate, up to the slab cut
     ex, ez = exit_point[0], exit_point[2]
     if exit_side == "north":
-        lo, hi, across = z0, min(max(ez, z0), z1), "x"
+        lo, hi, across = z0 - reach, min(max(ez, z0), z1), "x"
     elif exit_side == "south":
-        lo, hi, across = max(min(ez, z1), z0), z1, "x"
+        lo, hi, across = max(min(ez, z1), z0), z1 + reach, "x"
     elif exit_side == "west":
-        lo, hi, across = x0, min(max(ex, x0), x1), "z"
+        lo, hi, across = x0 - reach, min(max(ex, x0), x1), "z"
     else:
-        lo, hi, across = max(min(ex, x1), x0), x1, "z"
+        lo, hi, across = max(min(ex, x1), x0), x1 + reach, "z"
     depth = hi - lo
-    if depth <= MIN_SIZE_M:
+    if depth <= reach + MIN_SIZE_M:
         return None
-    # top flush with the floor, bottom a little above the floor underside so the two bottom faces are not coplanar
-    thickness = FLOOR_THICKNESS_M - Z_FIGHT_OFFSET_M
-    y = elevation - thickness / 2
-    # across the opening stop at the inner faces of the side linings (inset by Z_FIGHT_OFFSET_M), not inside them
-    e = Z_FIGHT_OFFSET_M
+    bottom = threshold_bottom(elevation)
+    y, thickness = (bottom + elevation) / 2, elevation - bottom
     if across == "x":
-        a0, a1 = rect[0] + e, rect[2] - e
-        return Box(name, "threshold", ((a0 + a1) / 2, y, (lo + hi) / 2), (a1 - a0, thickness, depth))
-    a0, a1 = rect[1] + e, rect[3] - e
-    return Box(name, "threshold", ((lo + hi) / 2, y, (a0 + a1) / 2), (depth, thickness, a1 - a0))
+        return Box(name, "threshold", ((x0 + x1) / 2, y, (lo + hi) / 2), (x1 - x0, thickness, depth))
+    return Box(name, "threshold", ((lo + hi) / 2, y, (z0 + z1) / 2), (depth, thickness, z1 - z0))
 
 
 def _world(local_to_world: dict[str, Any], point: Sequence[float]) -> tuple[float, float, float]:
@@ -137,21 +142,9 @@ def plan_closures(sector: dict[str, Any], manifest: dict[str, Any], project_root
                   stair_reports: Sequence[dict[str, Any]] = ()) -> list[Box]:
     elevation = float(sector["metric_settings"]["elevation_m"])
     floor_openings = openings(project_root / sector["source_svg"], "floor-opening")
-    boxes: list[Box] = []
     side_letter = {"north": "N", "south": "S", "west": "W", "east": "E"}
-    exit_sides = {generator.get("vertical_id"): side_letter[generator["resolved"]["exit_side"]]
-                  for generator in sector.get("vertical_generators", []) if generator.get("resolved")}
-    for index, opening in enumerate(floor_openings, start=1):
-        below = lower_sector(manifest, project_root, opening, elevation)
-        if below is None:
-            raise ValueError(f"{sector['sector_id']}: floor opening {opening['id']} ({opening['vertical_id']}) has no matching ceiling opening below")
-        bottom = float(below["metric_settings"]["elevation_m"]) + _arg(below["shared_args"], "--wall-height")
-        # up to the upper floor; on the exit side of a stair only into the slab band, below the top tread and the threshold
-        exit_side = exit_sides.get(opening["vertical_id"])
-        boxes.extend(lining_boxes(opening["rect"], bottom, elevation, f"Lining_{index:02d}_{opening['vertical_id']}",
-                                  frozenset({exit_side}) if exit_side else frozenset(),
-                                  elevation - FLOOR_THICKNESS_M + 2 * Z_FIGHT_OFFSET_M))
     by_vertical = {opening["vertical_id"]: opening for opening in floor_openings}
+    thresholds: dict[str, tuple[str, Box]] = {}
     for generator, report in zip(sector.get("vertical_generators", []), stair_reports):
         opening = by_vertical.get(generator.get("vertical_id"))
         resolved = generator.get("resolved", {})
@@ -163,7 +156,18 @@ def plan_closures(sector: dict[str, Any], manifest: dict[str, Any], project_root
         point = _world(generator["local_to_world"], exits[0]["origin"])
         box = threshold_box(opening["rect"], resolved["exit_side"], point, elevation, f"Threshold_{generator['vertical_id']}")
         if box is not None:
-            boxes.append(box)
+            thresholds[generator["vertical_id"]] = (side_letter[resolved["exit_side"]], box)
+    boxes: list[Box] = []
+    for index, opening in enumerate(floor_openings, start=1):
+        below = lower_sector(manifest, project_root, opening, elevation)
+        if below is None:
+            raise ValueError(f"{sector['sector_id']}: floor opening {opening['id']} ({opening['vertical_id']}) has no matching ceiling opening below")
+        bottom = float(below["metric_settings"]["elevation_m"]) + _arg(below["shared_args"], "--wall-height")
+        # up to the upper floor; on the exit side of a stair only up to the underside of the threshold, which closes it above
+        exit_side, _ = thresholds.get(opening["vertical_id"], (None, None))
+        boxes.extend(lining_boxes(opening["rect"], bottom, elevation, f"Lining_{index:02d}_{opening['vertical_id']}",
+                                  frozenset({exit_side}) if exit_side else frozenset(), threshold_bottom(elevation)))
+    boxes.extend(box for _, box in thresholds.values())
     return boxes
 
 
