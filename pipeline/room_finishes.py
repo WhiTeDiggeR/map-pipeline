@@ -88,6 +88,19 @@ def plan_finishes_from_text(svg: str, registry: dict[str, Any], name: str = "pla
     return plan
 
 
+def _target(source_id: str, plan: dict[str, tuple[str, str]], classes: dict[str, Any]) -> tuple[str, str] | None:
+    """(surface, finish class) of a mesh. The converter joins collinear wall pieces of several plan elements into one mesh
+    whose source_id lists them with "|" (a wall of two rooms, or a room wall continued by the outer wall); such a mesh
+    takes the class with the smaller priority among its parts, like a wall between two rooms (caretaker #273)."""
+    parts = [plan[part] for part in source_id.split("|") if part in plan]
+    if not parts:
+        return None
+    surfaces = {surface for surface, _value in parts}
+    if len(surfaces) != 1:
+        raise FinishError(f"{source_id}: joined mesh of different surfaces {sorted(surfaces)}")
+    return min(parts, key=lambda part: classes.get(part[1], {}).get("priority", 1 << 30))
+
+
 def _sections(text: str) -> list[str]:
     """Split a text scene into its header and [section] blocks, keeping every byte."""
     parts = re.split(r"(?m)^(?=\[)", text)
@@ -124,7 +137,7 @@ def render(text: str, name: str, plan: dict[str, tuple[str, str]], registry: dic
             continue
         surface = SURFACES[node.group(2)]
         source = re.search(r'(?m)^metadata/source_id = "([^"]*)"', block)
-        target = plan.get(source.group(1)) if source else None
+        target = _target(source.group(1), plan, classes) if source else None
         if target and target[0] != surface:
             raise FinishError(f"{name}: {node.group(1)} is a {surface} mesh but its source is a {target[0]}")
         if target:
