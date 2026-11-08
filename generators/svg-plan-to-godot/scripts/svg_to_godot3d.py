@@ -16,8 +16,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Sequence
 
-VERSION = "1.19.0"
-SUPPORTED_TYPES = {"area", "floor", "floor-opening", "ceiling", "ceiling-opening", "wall", "opening", "door", "window", "obstacle", "stairs", "marker", "ignore"}
+VERSION = "1.20.0"
+SUPPORTED_TYPES = {"area", "floor", "floor-opening", "ceiling", "ceiling-opening", "wall", "opening", "door", "window", "obstacle", "stairs", "marker", "wall-side-room", "niche", "ignore"}
 GENERIC_CLASS_MAP = {
     "area": "area", "room": "area", "floor": "floor", "floor-opening": "floor-opening", "floor-hole": "floor-opening",
     "ceiling": "ceiling", "ceiling-opening": "ceiling-opening", "ceiling-hole": "ceiling-opening", "wall": "wall",
@@ -132,6 +132,20 @@ class Opening:
 
 
 @dataclass
+class Niche:
+    """A shallow cut in a wall (caretaker #297): the wall is cut like an opening, but a thin back part of the wall stays
+    behind it. toward is the unit normal pointing out of the niche into its room; depth is measured from that face."""
+    a: tuple[float, float]
+    b: tuple[float, float]
+    source_id: str
+    bottom: float
+    height: float
+    depth: float
+    room: str
+    toward: tuple[float, float] = (0.0, 0.0)
+
+
+@dataclass
 class Box:
     name: str
     source_id: str
@@ -139,6 +153,11 @@ class Box:
     size: tuple[float, float, float]
     angle_y: float = 0.0
     material: str = "Wall"
+    # wall faces split by the room on each side (caretaker #297): (side, start, end, room source id) along the local x axis,
+    # side +1 is the local +z face, -1 the local -z face; start and end run from -size_x/2 to size_x/2
+    strips: list[tuple[int,float,float,str]] = field(default_factory=list)
+    # faces of a wall prism that line a niche (caretaker #297): "x-"/"x+" ends, "y-"/"y+" bottom/top, "z-"/"z+" long faces
+    niche_faces: set[str] = field(default_factory=set)
 
 
 @dataclass
@@ -430,6 +449,51 @@ def carve_opening(wall: Segment, opening: Opening, snap: float) -> list[Segment]
     return out
 
 
+def carve_niche(wall: Segment, niche: Niche, snap: float) -> list[Segment]:
+    """Cut a niche into a wall like an opening and keep the back part of the wall behind it: a thinner piece moved away
+    from the niche's room by half the niche depth, so the niche is depth deep from the room face (caretaker #297)."""
+    opening=Opening(niche.a,niche.b,niche.source_id,"niche",niche.bottom,niche.height)
+    pieces=carve_opening(wall,opening,snap)
+    if len(pieces)==1 and pieces[0] is wall: return pieces
+    if niche.depth>=wall.thickness-1e-3: raise ConversionError(f"{niche.source_id}: niche depth {niche.depth:g} m must be less than the wall thickness {wall.thickness:g} m")
+    a,b=wall.a,wall.b; vx,vy=b[0]-a[0],b[1]-a[1]; length=math.hypot(vx,vy); ux,uy=vx/length,vy/length
+    tc=(niche.a[0]-a[0])*ux+(niche.a[1]-a[1])*uy; td=(niche.b[0]-a[0])*ux+(niche.b[1]-a[1])*uy
+    lo=max(0.0,min(tc,td)); hi=min(length,max(tc,td))
+    bottom=max(wall.elevation,niche.bottom); top=min(wall.elevation+wall.height,niche.bottom+niche.height)
+    shift=(-niche.toward[0]*niche.depth/2,-niche.toward[1]*niche.depth/2)
+    back_a=(a[0]+ux*lo+shift[0],a[1]+uy*lo+shift[1]); back_b=(a[0]+ux*hi+shift[0],a[1]+uy*hi+shift[1])
+    return pieces+[Segment(back_a,back_b,wall.source_id,top-bottom,wall.thickness-niche.depth,bottom)]
+
+
+def niche_faces(wall: Segment, niches: Sequence[Niche], tolerance: float = 1e-4) -> set[str]:
+    """Faces of a final wall prism that line a niche: the reveals of the wall pieces beside it, the top of the piece below,
+    the underside of the piece above and the niche-side face of the back piece (caretaker #297)."""
+    faces: set[str]=set()
+    dx,dz=wall.b[0]-wall.a[0],wall.b[1]-wall.a[1]; length=math.hypot(dx,dz)
+    if length<=1e-9: return faces
+    ux,uz=dx/length,dz/length; nx,nz=-uz,ux; top=wall.elevation+wall.height
+    for niche in niches:
+        ex,ez=niche.b[0]-niche.a[0],niche.b[1]-niche.a[1]; niche_length=math.hypot(ex,ez)
+        if niche_length<=1e-9 or abs(ux*ez-uz*ex)/niche_length>1e-6: continue
+        offset=(wall.a[0]-niche.a[0])*nx+(wall.a[1]-niche.a[1])*nz
+        ta=(wall.a[0]-niche.a[0])*ux+(wall.a[1]-niche.a[1])*uz; tb=(wall.b[0]-niche.a[0])*ux+(wall.b[1]-niche.a[1])*uz
+        tn=(niche.b[0]-niche.a[0])*ux+(niche.b[1]-niche.a[1])*uz; lo,hi=min(0.0,tn),max(0.0,tn)
+        n_top=niche.bottom+niche.height
+        spans=abs(min(ta,tb)-lo)<=tolerance and abs(max(ta,tb)-hi)<=tolerance
+        back=-(niche.toward[0]*nx+niche.toward[1]*nz)*niche.depth/2
+        if spans and abs(offset-back)<=tolerance and niche.depth>0:
+            faces.add("z+" if niche.toward[0]*nx+niche.toward[1]*nz>0 else "z-")
+            continue
+        if abs(offset)>tolerance: continue
+        if spans and abs(top-niche.bottom)<=tolerance: faces.add("y+")
+        if spans and abs(wall.elevation-n_top)<=tolerance: faces.add("y-")
+        if wall.elevation<n_top-tolerance and top>niche.bottom+tolerance:
+            for end,t in (("x-",ta),("x+",tb)):
+                other=tb if end=="x-" else ta
+                if (abs(t-lo)<=tolerance and other<lo) or (abs(t-hi)<=tolerance and other>hi): faces.add(end)
+    return faces
+
+
 def merge_collinear_segments(segments: Sequence[Segment], tolerance: float) -> list[Segment]:
     """Snap compatible collinear segments to one line and union their intervals."""
     groups: list[dict[str, Any]] = []
@@ -657,6 +721,63 @@ def resolve_wall_joints(segments: Sequence[Segment], tolerance: float, gap: floa
             else: segment.b=point
             resolved+=1
     return adjusted,resolved
+
+
+WALL_SIDE_PROBE = 0.02  # m in front of a wall face where the room of that face is looked up
+WALL_SIDE_MIN_STRIP = 0.02  # m; shorter room changes along a face are joined with the neighbouring strip
+
+
+def wall_side_strips(wall: Segment, rooms: Sequence[tuple[str,list[tuple[float,float]],float,int]]) -> list[tuple[int,float,float,str]]:
+    """Split both long faces of a wall prism by the room in front of them (caretaker #297).
+
+    rooms are (source id, centre-line polygon, floor elevation, rank) in world coordinates: floors and areas of the plan (rank 1)
+    and wall-side-room outlines (rank 0), rooms of a neighbouring plan in front of walls this plan owns. For each face the
+    line WALL_SIDE_PROBE in front of it is cut by the room outlines; every piece takes the room that contains it (the highest
+    floor not above the wall top, then a room of the plan, then the smallest room). A face end hidden in a crossing wall (shorter than the wall
+    thickness) joins its neighbour, so only visible room changes split a face. A piece in front of no room gets "".
+    Returns (side, start, end, room) with start/end along the local x axis (-length/2 .. length/2)."""
+    dx,dz=wall.b[0]-wall.a[0],wall.b[1]-wall.a[1]; length=math.hypot(dx,dz)
+    if length<=1e-9: return []
+    ux,uz=dx/length,dz/length; nx,nz=-uz,ux; top=wall.elevation+wall.height
+    candidates=[(source,polygon,elevation,rank,polygon_area(polygon)) for source,polygon,elevation,rank in rooms if elevation<top-1e-2]
+    result=[]
+    for side in (1,-1):
+        offset=side*(wall.thickness/2+WALL_SIDE_PROBE)
+        start=(wall.a[0]+nx*offset,wall.a[1]+nz*offset)
+        cuts={0.0,length}
+        for _source,polygon,_elevation,_rank,_area in candidates:
+            for index,first in enumerate(polygon):
+                second=polygon[(index+1)%len(polygon)]
+                ex,ez=second[0]-first[0],second[1]-first[1]; denominator=ux*ez-uz*ex
+                if abs(denominator)<=1e-12: continue
+                qx,qz=first[0]-start[0],first[1]-start[1]
+                t=(qx*ez-qz*ex)/denominator; u=(qx*uz-qz*ux)/denominator
+                if -1e-9<=u<=1+1e-9 and 1e-6<t<length-1e-6: cuts.add(t)
+        ordered=sorted(cuts); pieces=[]
+        for t0,t1 in zip(ordered,ordered[1:]):
+            if t1-t0<=1e-9: continue
+            middle=(t0+t1)/2; point=(start[0]+ux*middle,start[1]+uz*middle)
+            inside=[(elevation,rank,-area,source) for source,polygon,elevation,rank,area in candidates if point_in_polygon(point,polygon)]
+            room=max(inside)[3] if inside else ""
+            if pieces and pieces[-1][2]==room: pieces[-1][1]=t1
+            else: pieces.append([t0,t1,room])
+        def absorb(limit: float) -> None:
+            changed=True
+            while changed and len(pieces)>1:
+                changed=False
+                for index,piece in enumerate(pieces):
+                    end=index in (0,len(pieces)-1)
+                    if piece[1]-piece[0]>=(limit if end else WALL_SIDE_MIN_STRIP)-1e-9: continue
+                    neighbour=pieces[1] if index==0 else pieces[index-1]
+                    if index==0: neighbour[0]=piece[0]
+                    else: neighbour[1]=piece[1]
+                    pieces.pop(index)
+                    for merge in range(len(pieces)-1,0,-1):
+                        if pieces[merge][2]==pieces[merge-1][2]: pieces[merge-1][1]=pieces[merge][1]; pieces.pop(merge)
+                    changed=True; break
+        absorb(wall.thickness+WALL_SIDE_PROBE)
+        result.extend((side,t0-length/2,t1-length/2,room) for t0,t1,room in pieces)
+    return result
 
 
 def polygon_area(points: Sequence[tuple[float,float]]) -> float:
@@ -1352,6 +1473,41 @@ class ObjWriter:
             vertices.append((cx+x*co+z*si,cy+y,cz-x*si+z*co))
         faces=[(0,2,1),(0,3,2),(4,5,6),(4,6,7),(0,1,5),(0,5,4),(3,7,6),(3,6,2),(0,4,7),(0,7,3),(1,2,6),(1,6,5)]
         self.add_mesh(box.name,box.material,vertices,faces)
+    def add_wall_box(self,box:Box) -> list[str]:
+        """A wall prism written as surfaces (caretaker #297): one per room in front of each long face, from box.strips, and
+        one for the ends, top and bottom. Every surface is its own usemtl, so the importer keeps them as separate mesh
+        surfaces in this order. Returns the surface keys: "side:+:<room>" / "side:-:<room>" (room "" for no room) and "ends".
+        The strips tile each face exactly at the box corners, so the prism stays closed and no plane is added."""
+        sx,sy,sz=box.size; cx,cy,cz=box.center; co=math.cos(box.angle_y); si=math.sin(box.angle_y)
+        def world(x:float,y:float,z:float)->tuple[float,float,float]: return (cx+x*co+z*si,cy+y,cz-x*si+z*co)
+        strips=box.strips or [(1,-sx/2,sx/2,""),(-1,-sx/2,sx/2,"")]
+        niche=box.niche_faces
+        surfaces:dict[str,list[tuple[float,float,float]]]={}
+        for side,start,end,room in strips:
+            z=side*sz/2; quad=[world(start,-sy/2,z),world(end,-sy/2,z),world(end,sy/2,z),world(start,sy/2,z)]
+            # outward winding as add_box: +z face (4,5,6),(4,6,7); -z face (0,2,1),(0,3,2)
+            triangles=[(0,1,2),(0,2,3)] if side>0 else [(0,2,1),(0,3,2)]
+            key="niche" if ("z+" if side>0 else "z-") in niche else f'side:{"+" if side>0 else "-"}:{room}'
+            surfaces.setdefault(key,[]).extend(quad[i] for tri in triangles for i in tri)
+        corners=[world(x,y,z) for x,y,z in [(-sx/2,-sy/2,-sz/2),(sx/2,-sy/2,-sz/2),(sx/2,sy/2,-sz/2),(-sx/2,sy/2,-sz/2),(-sx/2,-sy/2,sz/2),(sx/2,-sy/2,sz/2),(sx/2,sy/2,sz/2),(-sx/2,sy/2,sz/2)]]
+        end_faces={"y-":[(0,1,5),(0,5,4)],"y+":[(3,7,6),(3,6,2)],"x-":[(0,4,7),(0,7,3)],"x+":[(1,2,6),(1,6,5)]}
+        for face,triangles in end_faces.items():
+            surfaces.setdefault("niche" if face in niche else "ends",[]).extend(corners[i] for tri in triangles for i in tri)
+        if "niche" in surfaces: surfaces["niche"]=surfaces.pop("niche")
+        self.lines += [f"o {safe_name(box.name)}"]
+        for index,(key,points) in enumerate(surfaces.items()):
+            self.lines.append(f"usemtl {'WallEnds' if key=='ends' else 'WallNiche' if key=='niche' else f'WallSide{index}'}")
+            base=self.vertex_count; normal_base=self.normal_count; faces=[]
+            for tri in range(0,len(points),3):
+                a,b,c=points[tri:tri+3]
+                ab=(b[0]-a[0],b[1]-a[1],b[2]-a[2]); ac=(c[0]-a[0],c[1]-a[1],c[2]-a[2])
+                normal=(ab[1]*ac[2]-ab[2]*ac[1],ab[2]*ac[0]-ab[0]*ac[2],ab[0]*ac[1]-ab[1]*ac[0]); length=math.sqrt(sum(v*v for v in normal))
+                self.lines.append("vn {:.6f} {:.6f} {:.6f}".format(*((normal[0]/length,normal[1]/length,normal[2]/length) if length>1e-12 else (0.0,1.0,0.0))))
+                faces.append(tri)
+            self.lines += [f"v {x:.6f} {y:.6f} {z:.6f}" for x,y,z in points]
+            self.lines += [f"f {base+tri+1}//{normal_base+n+1} {base+tri+2}//{normal_base+n+1} {base+tri+3}//{normal_base+n+1}" for n,tri in enumerate(faces)]
+            self.vertex_count+=len(points); self.normal_count+=len(faces)
+        return list(surfaces)
     def add_prism(self,name:str,material:str,polygon:list[tuple[float,float]],bottom:float,top:float,collision_face:str="top") -> list[tuple[float,float,float]]:
         triangles=ear_clip(polygon); n=len(polygon); vertices=[(x,bottom,z) for x,z in polygon]+[(x,top,z) for x,z in polygon]; faces=[]
         upward_triangles=[(a,c,b) for a,b,c in triangles]
@@ -1726,6 +1882,8 @@ def generate(args: argparse.Namespace) -> dict[str, Any]:
     ceilings: list[tuple[str,list[tuple[float,float]],float,float]]=[]; ceiling_openings: list[tuple[str,list[tuple[float,float]],float]]=[]; pending_ceiling_openings: list[tuple[str,list[tuple[float,float]],float|None,float|None]]=[]; area_ceiling_boundaries: list[tuple[list[tuple[float,float]],float,float]]=[]
     walls: list[Segment]=[]; room_walls: list[Segment]=[]; openings: list[Opening]=[]; boxes: list[Box]=[]; markers: list[Marker]=[]
     opening_source_metadata: dict[tuple[str,str],dict[str,str|None]]={}
+    wall_side_rooms: list[tuple[str,list[tuple[float,float]],float,int]]=[]
+    niches: list[Niche]=[]
     expanded_area_floors=0; expanded_area_ceilings=0
     for item in items:
         try:
@@ -1733,6 +1891,7 @@ def generate(args: argparse.Namespace) -> dict[str, Any]:
             if item.kind in {"area","floor"}:
                 original_polygon=[world(p) for p in polygon_of(item)]
                 floor_polygon=original_polygon
+                wall_side_rooms.append((item.element_id,original_polygon,elevation,1))
                 explicit_offset=optional_value_for(item,("floor_edge_offset",),overrides)
                 if explicit_offset is not None and explicit_offset<0:
                     raise ConversionError("floor edge offset must be zero or greater")
@@ -1793,6 +1952,16 @@ def generate(args: argparse.Namespace) -> dict[str, Any]:
                 opening_source_metadata[("ceiling",item.element_id)]={"source_id":item.element_id,"space_id":text_value_for(item,"space_id",overrides)}
             elif item.kind=="wall":
                 item_walls=segments_of(item,settings,overrides); walls.extend(item_walls); room_walls.extend(item_walls)
+            elif item.kind=="niche":
+                # a shallow wall cut with a back part left behind it, for an inset grille (caretaker #297)
+                bottom,opening_height=opening_dimensions(item,settings,overrides)
+                depth=optional_value_for(item,("niche_depth",),overrides); room=text_value_for(item,"niche_room",overrides)
+                if opening_height is None or depth is None or depth<=0 or not room: raise ConversionError("niche needs data-opening-height, a positive data-niche-depth and data-niche-room")
+                niches.extend(Niche(world(s.a),world(s.b),item.element_id,elevation+bottom,opening_height,depth,room) for s in segments_of(item,settings,overrides))
+            elif item.kind=="wall-side-room":
+                # no geometry: the outline of a neighbouring plan's room, so the faces of walls this plan owns take that room (caretaker #297)
+                if not item.closed: raise ConversionError("wall-side-room must be a closed rect, polygon, or closed path")
+                wall_side_rooms.append((item.element_id,[world(p) for p in polygon_of(item)],elevation,0))
             elif item.kind in {"opening","door","window"}:
                 bottom,opening_height=opening_dimensions(item,settings,overrides)
                 segs=segments_of(item,settings,overrides)
@@ -1866,6 +2035,16 @@ def generate(args: argparse.Namespace) -> dict[str, Any]:
         world_room_walls.append(Segment(a,b,wall.source_id,wall.height,wall.thickness,wall.elevation))
     split_walls=world_walls
     for opening in openings: split_walls=[piece for wall in split_walls for piece in carve_opening(wall,opening,settings.opening_snap)]
+    for niche in niches:
+        polygon=next((polygon for source,polygon,_elevation,_rank in wall_side_rooms if source==niche.room),None)
+        dx,dz=niche.b[0]-niche.a[0],niche.b[1]-niche.a[1]; length=math.hypot(dx,dz)
+        if polygon is None or length<=1e-9: raise ConversionError(f"{niche.source_id}: niche room {niche.room!r} is not a floor or area of the plan")
+        nx,nz=-dz/length,dx/length; middle=((niche.a[0]+niche.b[0])/2,(niche.a[1]+niche.b[1])/2)
+        sides=[side for side in (1,-1) if point_in_polygon((middle[0]+side*nx*0.05,middle[1]+side*nz*0.05),polygon)]
+        if len(sides)!=1: raise ConversionError(f"{niche.source_id}: niche must lie on a wall of room {niche.room!r}")
+        niche.toward=(sides[0]*nx,sides[0]*nz)
+        split_walls=[piece for wall in split_walls for piece in carve_niche(wall,niche,settings.opening_snap)]
+    report.counts["wall_niches"]=len(niches)
     normalized_walls,normalization=normalize_wall_segments(split_walls,settings.wall_merge_tolerance)
     if settings.wall_joint_mode not in {"butt","overlap"}:
         raise ConversionError("--wall-joint-mode must be butt or overlap")
@@ -1897,7 +2076,7 @@ def generate(args: argparse.Namespace) -> dict[str, Any]:
     for index,wall in enumerate(normalized_walls,1):
         dx,dz=wall.b[0]-wall.a[0],wall.b[1]-wall.a[1]; length=math.hypot(dx,dz)
         embed=settings.wall_embed if any(abs(wall.elevation-level)<=1e-7 for level in floor_elevations) else 0.0
-        boxes.append(Box(f"Wall_{index}_{safe_name(wall.source_id)}",wall.source_id,((wall.a[0]+wall.b[0])/2,wall.elevation+(wall.height-embed)/2,(wall.a[1]+wall.b[1])/2),(length,wall.height+embed,wall.thickness),-math.atan2(dz,dx),"Wall"))
+        boxes.append(Box(f"Wall_{index}_{safe_name(wall.source_id)}",wall.source_id,((wall.a[0]+wall.b[0])/2,wall.elevation+(wall.height-embed)/2,(wall.a[1]+wall.b[1])/2),(length,wall.height+embed,wall.thickness),-math.atan2(dz,dx),"Wall",wall_side_strips(wall,wall_side_rooms),niche_faces(wall,niches)))
     normalized_floors,floor_normalization=normalize_floor_polygons(floors,floor_openings,world_room_walls)
     if settings.floor_anchor not in {"center","top"}:
         raise ConversionError("--floor-anchor must be center or top")
@@ -1966,11 +2145,12 @@ def generate(args: argparse.Namespace) -> dict[str, Any]:
     for box in boxes:
         group="Walls" if box.material=="Wall" else "Obstacles"
         writers[group].add_box(box)
-        writer=ObjWriter(); writer.add_box(box)
+        writer=ObjWriter(); wall_surfaces=writer.add_wall_box(box) if group=="Walls" else []
+        if group!="Walls": writer.add_box(box)
         if group=="Walls": wall_index+=1; part_index=wall_index
         else: obstacle_index+=1; part_index=obstacle_index
         node_name=f'{"Wall" if group=="Walls" else "Obstacle"}_{part_index:03d}_{safe_name(box.source_id)}'
-        box_parts.append((group,node_name,box.source_id,writer,box))
+        box_parts.append((group,node_name,box.source_id,writer,box,wall_surfaces))
     scene_path=output/(scene_name+".tscn"); report_path=output/"conversion_report.json"; mtl_path=output/"geometry.mtl"
     mesh_specs=[
         ("Floors",output/"floor_geometry.obj",writers["Floors"],output/"floor_material.tres","2_floor_mesh","1_floor_material"),
@@ -2002,12 +2182,18 @@ def generate(args: argparse.Namespace) -> dict[str, Any]:
         resource=make_resource_path(output,filename,project_root,args.resource_dir); mesh_id=f"{prefix}_part_{index}_mesh"
         ext_resources.append(f'[ext_resource type="Mesh" path="{resource}" id="{mesh_id}"]')
         visual_nodes.append(f'[node name="{node_name}" type="MeshInstance3D" parent="{group}/Visual"]\nmesh = ExtResource("{mesh_id}")\nmaterial_override = ExtResource("{material_id}")\nmetadata/source_id = {godot_string(source_id)}')
-    for index,(group,node_name,source_id,writer,_) in enumerate(box_parts,1):
+    for index,(group,node_name,source_id,writer,_,wall_surfaces) in enumerate(box_parts,1):
         prefix="wall" if group=="Walls" else "obstacle"; filename=f"{prefix}_{node_name.split('_',2)[1]}_{safe_name(source_id)}.obj"; path=output/filename
         path.write_text("\n".join(writer.lines)+"\n",encoding="utf-8"); files.insert(-1,filename)
         resource=make_resource_path(output,filename,project_root,args.resource_dir); mesh_id=f"box_part_{index}_mesh"; material_id="3_wall_material" if group=="Walls" else "5_obstacle_material"
         ext_resources.append(f'[ext_resource type="Mesh" path="{resource}" id="{mesh_id}"]')
-        visual_nodes.append(f'[node name="{node_name}" type="MeshInstance3D" parent="{group}/Visual"]\nmesh = ExtResource("{mesh_id}")\nmaterial_override = ExtResource("{material_id}")\nmetadata/source_id = {godot_string(source_id)}')
+        if wall_surfaces:
+            # one material per surface (caretaker #297); the room finish stage points each side at its room's finish
+            overrides="".join(f'surface_material_override/{surface} = ExtResource("{material_id}")\n' for surface in range(len(wall_surfaces)))
+            keys=", ".join(godot_string(key) for key in wall_surfaces)
+            visual_nodes.append(f'[node name="{node_name}" type="MeshInstance3D" parent="{group}/Visual"]\nmesh = ExtResource("{mesh_id}")\n{overrides}metadata/source_id = {godot_string(source_id)}\nmetadata/wall_surfaces = PackedStringArray({keys})')
+        else:
+            visual_nodes.append(f'[node name="{node_name}" type="MeshInstance3D" parent="{group}/Visual"]\nmesh = ExtResource("{mesh_id}")\nmaterial_override = ExtResource("{material_id}")\nmetadata/source_id = {godot_string(source_id)}')
     subresources=[]; nodes=[]
     collision_indices={"Floors":0,"Ceilings":0}
     for group,node_name,source_id,_,collision in surface_parts:
@@ -2015,7 +2201,7 @@ def generate(args: argparse.Namespace) -> dict[str, Any]:
         sid=f"Concave{kind}_{index}"; values=", ".join(f"{x:.6g}, {y:.6g}, {z:.6g}" for x,y,z in collision)
         subresources.append(f'[sub_resource type="ConcavePolygonShape3D" id="{sid}"]\ndata = PackedVector3Array({values})')
         nodes.append(f'[node name="{node_name}" type="StaticBody3D" parent="{group}/Collisions"]\ncollision_layer = {settings.collision_layer}\ncollision_mask = {settings.collision_layer}\nmetadata/source_id = {godot_string(source_id)}\n[node name="CollisionShape3D" type="CollisionShape3D" parent="{group}/Collisions/{node_name}"]\nshape = SubResource("{sid}")')
-    for index,(_,node_name,source_id,_,box) in enumerate(box_parts,1):
+    for index,(_,node_name,source_id,_,box,_surfaces) in enumerate(box_parts,1):
         sid=f"Box_{index}"; subresources.append(f'[sub_resource type="BoxShape3D" id="{sid}"]\nsize = {godot_vector(box.size)}'); parent=("Walls" if box.material=="Wall" else "Obstacles")+"/Collisions"
         node_name=safe_name(node_name)
         nodes.append(f'[node name="{node_name}" type="StaticBody3D" parent="{parent}"]\nposition = {godot_vector(box.center)}\nrotation = Vector3(0, {box.angle_y:.8g}, 0)\ncollision_layer = {settings.collision_layer}\ncollision_mask = {settings.collision_layer}\nmetadata/source_id = {godot_string(source_id)}\n[node name="CollisionShape3D" type="CollisionShape3D" parent="{parent}/{node_name}"]\nshape = SubResource("{sid}")')

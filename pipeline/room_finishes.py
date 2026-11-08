@@ -7,7 +7,13 @@ stage runs after the converter, like vertical_closures.py, and points every floo
 architecture scene at the material of its room's class. The materials live outside the generated package (the registry names them),
 so regeneration never overwrites them; a mesh without a class keeps the package material.
 
-A wall mesh has one material: a wall between rooms of different classes takes the class with the smaller priority.
+A wall mesh is written by the converter as surfaces (caretaker #297, metadata/wall_surfaces): one per room in front of each
+long face ("side:+:<floor id>", "side:-:<floor id>") and one for the ends, top and bottom ("ends"). Every side surface takes
+the class of the room in front of it, so a wall between two rooms is finished as each room on its own side. The ends (door
+reveals, lintel undersides, wall tops) and a side in front of an unclassed room or of no room keep the wall's own class:
+the class with the smaller priority among its plan elements. The lining of a wall niche ("niche": reveals and back) takes
+the registry's niche_material, the dark inside of a duct. A wall mesh without surfaces (an older package) has one material: a wall between rooms of different classes
+takes the class with the smaller priority.
 
 Usage (re-apply to the live package of one sector, e.g. after changing room_finishes.json materials):
     python <pipeline>/room_finishes.py --manifest <project manifest> --sector U-SECURITY [--check]
@@ -23,7 +29,9 @@ from pathlib import Path
 from typing import Any
 
 SURFACES = {"Floors/Visual": "floor", "Ceilings/Visual": "ceiling", "Walls/Visual": "wall"}
-SVG_SURFACE = {"floor": "floor", "ceiling": "ceiling", "wall": "wall"}
+SVG_SURFACE = {"floor": "floor", "ceiling": "ceiling", "wall": "wall", "wall-side-room": "room"}
+# wall-side-room: outline of a neighbouring sector's room in front of a wall this sector owns; it only names the class of
+# that side of the wall (caretaker #297)
 FINISH_ID_PREFIX = "finish_"
 
 
@@ -53,6 +61,12 @@ def validate_registry(registry: dict[str, Any], project_root: Path) -> list[str]
                 errors.append(f"{name}.{surface}: material must be a res:// path outside gen/")
             elif not (project_root / path.removeprefix("res://")).is_file():
                 errors.append(f"{name}.{surface}: material is missing: {path}")
+    niche = registry.get("niche_material")
+    if niche is not None:
+        if not str(niche).startswith("res://") or str(niche).startswith("res://gen/"):
+            errors.append("niche_material must be a res:// path outside gen/")
+        elif not (project_root / str(niche).removeprefix("res://")).is_file():
+            errors.append(f"niche_material is missing: {niche}")
     for sector, entry in registry.get("sectors", {}).items():
         for room, value in [("default", entry.get("default", "")), *entry.get("rooms", {}).items()]:
             if value and value not in classes:
@@ -101,13 +115,30 @@ def _target(source_id: str, plan: dict[str, tuple[str, str]], classes: dict[str,
     return min(parts, key=lambda part: classes.get(part[1], {}).get("priority", 1 << 30))
 
 
+def _surface_classes(keys: list[str], source_id: str, plan: dict[str, tuple[str, str]], classes: dict[str, Any]) -> tuple[list[str], str]:
+    """Finish class of every surface of a wall mesh ("" keeps the package material) and the class of its ends.
+
+    A side in front of a classed room takes that room's class. Every other surface (the ends, a side in front of an
+    unclassed room or of no room) keeps what the whole wall had before: the class of its plan elements, the smaller
+    priority winning, else the package material. So a room's class never spreads past its own side of a wall."""
+    def room(key: str) -> str:
+        entry = plan.get(key.split(":", 2)[2]) if key.startswith("side:") else None
+        return entry[1] if entry and entry[0] in {"floor", "room"} else ""
+
+    target = _target(source_id, plan, classes)
+    if target and target[0] != "wall":
+        raise FinishError(f"{source_id}: wall mesh but its source is a {target[0]}")
+    ends = target[1] if target else ""
+    return ["niche" if key == "niche" else room(key) or ends for key in keys], ends
+
+
 def _sections(text: str) -> list[str]:
     """Split a text scene into its header and [section] blocks, keeping every byte."""
     parts = re.split(r"(?m)^(?=\[)", text)
     return [part for part in parts if part]
 
 
-def apply(scene: Path, svg_path: Path, registry: dict[str, Any], write: bool = True) -> tuple[list[dict[str, str]], bool]:
+def apply(scene: Path, svg_path: Path, registry: dict[str, Any], write: bool = True) -> tuple[list[dict[str, Any]], bool]:
     """Point the floor, ceiling and wall meshes of a generated scene at their finish materials. Idempotent: a mesh without
     a class gets the package material back. Returns the assignments (for the regeneration report) and whether the scene
     changed; with write=False the scene file is left as is."""
@@ -118,7 +149,7 @@ def apply(scene: Path, svg_path: Path, registry: dict[str, Any], write: bool = T
     return assignments, updated != text
 
 
-def render(text: str, name: str, plan: dict[str, tuple[str, str]], registry: dict[str, Any]) -> tuple[str, list[dict[str, str]]]:
+def render(text: str, name: str, plan: dict[str, tuple[str, str]], registry: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
     classes = registry.get("classes", {})
     sections = _sections(text)
     package: dict[str, str] = {}
@@ -127,7 +158,7 @@ def render(text: str, name: str, plan: dict[str, tuple[str, str]], registry: dic
         if match and not match.group(2).startswith(FINISH_ID_PREFIX):
             package[match.group(1)] = match.group(2)
     used: dict[str, str] = {}
-    assignments: list[dict[str, str]] = []
+    assignments: list[dict[str, Any]] = []
     result: list[str] = []
     for block in sections:
         header = block.split("\n", 1)[0]
@@ -137,6 +168,12 @@ def render(text: str, name: str, plan: dict[str, tuple[str, str]], registry: dic
             continue
         surface = SURFACES[node.group(2)]
         source = re.search(r'(?m)^metadata/source_id = "([^"]*)"', block)
+        wall_surfaces = re.search(r'(?m)^metadata/wall_surfaces = PackedStringArray\(([^)]*)\)$', block)
+        if surface == "wall" and wall_surfaces and source:
+            block = _render_wall_surfaces(block, name, node.group(1), source.group(1), re.findall(r'"([^"]*)"', wall_surfaces.group(1)),
+                                          plan, registry, package, used, assignments, f"{node.group(2)}/{node.group(1)}")
+            result.append(block)
+            continue
         target = _target(source.group(1), plan, classes) if source else None
         if target and target[0] != surface:
             raise FinishError(f"{name}: {node.group(1)} is a {surface} mesh but its source is a {target[0]}")
@@ -166,11 +203,50 @@ def render(text: str, name: str, plan: dict[str, tuple[str, str]], registry: dic
     return updated, assignments
 
 
-def describe(assignments: list[dict[str, str]]) -> dict[str, Any]:
+def _render_wall_surfaces(block: str, name: str, node: str, source_id: str, keys: list[str], plan: dict[str, tuple[str, str]],
+                          registry: dict[str, Any], package: dict[str, str], used: dict[str, str],
+                          assignments: list[dict[str, Any]], path: str) -> str:
+    """Point every surface of a wall mesh at the wall material of its finish class (caretaker #297)."""
+    classes = registry.get("classes", {})
+    values, ends = _surface_classes(keys, source_id, plan, classes)
+    block = re.sub(r'(?m)^metadata/finish_class(?:es)? = .*\n', "", block)
+    for index, value in enumerate(values):
+        if value == "niche" and registry.get("niche_material"):
+            material_id = f"{FINISH_ID_PREFIX}niche"
+            used[material_id] = registry["niche_material"]
+        elif value == "niche":
+            if "wall" not in package:
+                raise FinishError(f"{name}: package wall material is missing")
+            material_id = package["wall"]
+        elif value:
+            material_id = f"{FINISH_ID_PREFIX}{value}_wall"
+            used[material_id] = classes[value]["materials"]["wall"]
+        elif "wall" in package:
+            material_id = package["wall"]
+        else:
+            raise FinishError(f"{name}: package wall material is missing")
+        block, count = re.subn(rf'(?m)^surface_material_override/{index} = ExtResource\("[^"]+"\)$',
+                               f'surface_material_override/{index} = ExtResource("{material_id}")', block)
+        if count != 1:
+            raise FinishError(f"{name}: {node} has no single surface_material_override/{index}")
+    if re.search(rf'(?m)^surface_material_override/{len(values)} = ', block) or re.search(r'(?m)^material_override = ', block):
+        raise FinishError(f"{name}: {node} has more materials than wall surfaces")
+    if any(value and value != "niche" for value in values):
+        listed = ", ".join(f'"{value}"' for value in values)
+        own = f'\nmetadata/finish_class = "{ends}"' if ends else ""
+        block = re.sub(r'(?m)^(metadata/wall_surfaces = .*)$', rf'\1{own}\nmetadata/finish_classes = PackedStringArray({listed})', block, count=1)
+        assignments.append({"node": path, "source_id": source_id, "finish_class": ends or "-", "finish_classes": values})
+    return block
+
+
+def describe(assignments: list[dict[str, Any]]) -> dict[str, Any]:
     by_class: dict[str, int] = {}
+    two_sided = 0
     for item in assignments:
         by_class[item["finish_class"]] = by_class.get(item["finish_class"], 0) + 1
-    return {"meshes": len(assignments), "by_class": dict(sorted(by_class.items()))}
+        if len(set(item.get("finish_classes", []))) > 1:
+            two_sided += 1
+    return {"meshes": len(assignments), "by_class": dict(sorted(by_class.items())), "walls_with_several_finishes": two_sided}
 
 
 def _live_paths(sector_id: str, manifest_path: Path, project_root: Path) -> tuple[Path, Path]:

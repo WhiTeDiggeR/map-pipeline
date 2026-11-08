@@ -358,6 +358,20 @@ Unsupported or invalid:
 - missing/non-four-number root `viewBox`
 - visual CSS alone as physical semantics
 
+### Wall sides, neighbour rooms and niches (1.20)
+
+- Every wall prism is written as surfaces, in this order: one per room in front of each long face (`side:+:<room id>`,
+  `side:-:<room id>`, `<room id>` empty in front of no room), `ends` (reveals, top, bottom) and `niche` when it lines a
+  niche. The visual node carries `metadata/wall_surfaces` with these keys and one `surface_material_override/<i>` per
+  surface instead of `material_override`. The room in front of a face is the floor/area (or `wall-side-room`) that holds the
+  line 2 cm in front of it; a face end hidden in a crossing wall joins its neighbour. Collision boxes are unchanged.
+- `wall-side-room`: a closed shape without geometry, the outline of a room of a neighbouring plan in front of a wall this
+  plan owns; only used to name the room of that wall face.
+- `niche`: a line on a wall with `data-opening-bottom`, `data-opening-height`, `data-niche-depth` (m, less than the wall
+  thickness) and `data-niche-room` (id of the floor/area the niche opens into). The wall is cut like an opening and a back
+  part `depth` thinner is left behind it; its reveals, sill top, lintel underside and back face form the `niche` surface.
+  The conversion report counts them in `wall_niches`.
+
 ## 7. Interpretation examples
 
 ### Decorative labels
